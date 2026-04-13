@@ -2,35 +2,68 @@ const socket = io();
 
 let roomId;
 let player;
-let localStream;
-let peers = {};
 
-const config = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" }
-  ]
+// =====================
+// ROOM SYSTEM
+// =====================
+
+// 🏠 Oda oluştur
+function createRoom() {
+  socket.emit("create-room");
+}
+
+// serverdan oda gelince
+socket.on("room-created", (data) => {
+  roomId = data.roomId;
+
+  document.getElementById("roomDisplay").innerText =
+    "🏠 Oda: " + roomId;
+
+  const link = window.location.origin + "/?room=" + roomId;
+
+  const invite = document.getElementById("inviteLink");
+  invite.innerText = "🔗 Invite Link: " + link;
+  invite.href = link;
+});
+
+// 🔑 Odaya katıl
+function joinRoom() {
+  const id = document.getElementById("roomInput").value;
+
+  if (!id) return alert("Oda kodu gir");
+
+  socket.emit("join-room", id);
+}
+
+// başarıyla girince
+socket.on("room-joined", (id) => {
+  roomId = id;
+
+  document.getElementById("roomDisplay").innerText =
+    "✅ Odaya girildi: " + id;
+});
+
+// URL'den otomatik join
+window.onload = () => {
+  const params = new URLSearchParams(window.location.search);
+  const room = params.get("room");
+
+  if (room) {
+    socket.emit("join-room", room);
+    roomId = room;
+
+    document.getElementById("roomDisplay").innerText =
+      "🔗 Invite ile girildi: " + room;
+  }
 };
 
 // =====================
-// ROOM
+// YOUTUBE FIXED PLAYER
 // =====================
-function joinRoom() {
-  roomId = document.getElementById("roomInput").value;
 
-  if (!roomId) return alert("Room ID gir");
-
-  socket.emit("join-room", roomId);
-  startMic();
-}
-
-// =====================
-// YOUTUBE READY FIX
-// =====================
 let pendingVideoId = null;
 
 window.onYouTubeIframeAPIReady = () => {
-  console.log("YouTube API Ready");
-
   if (pendingVideoId) {
     createPlayer(pendingVideoId);
   }
@@ -50,7 +83,7 @@ function loadVideo() {
   const url = document.getElementById("ytInput").value;
   const videoId = extractVideoId(url);
 
-  if (!videoId) return alert("Geçerli link gir");
+  if (!videoId) return alert("Link gir");
 
   if (typeof YT === "undefined") {
     pendingVideoId = videoId;
@@ -70,17 +103,19 @@ function createPlayer(videoId) {
     width: "900",
     videoId,
     playerVars: {
-      autoplay: 0,
-      controls: 1
+      controls: 1,
+      autoplay: 0
     }
   });
 }
 
 // =====================
-// VIDEO CONTROL (SYNC)
+// VIDEO SYNC
 // =====================
+
 function playVideo() {
   if (!player) return;
+
   player.playVideo();
 
   socket.emit("video-event", {
@@ -91,6 +126,7 @@ function playVideo() {
 
 function pauseVideo() {
   if (!player) return;
+
   player.pauseVideo();
 
   socket.emit("video-event", {
@@ -109,6 +145,7 @@ socket.on("video-event", (data) => {
 // =====================
 // FULLSCREEN
 // =====================
+
 function toggleFullscreen() {
   const el = document.getElementById("playerContainer");
 
@@ -122,19 +159,29 @@ function toggleFullscreen() {
 // =====================
 // VOICE CHAT (WEBRTC)
 // =====================
+
+let localStream;
+let peers = {};
+
+const config = {
+  iceServers: [
+    { urls: "stun:stun.l.google.com:19302" }
+  ]
+};
+
 async function startMic() {
   try {
     localStream = await navigator.mediaDevices.getUserMedia({
       audio: true
     });
 
-    setupSocket();
+    setupSocketVoice();
   } catch (e) {
     alert("Mic izin vermedin");
   }
 }
 
-function setupSocket() {
+function setupSocketVoice() {
 
   socket.on("user-joined", (id) => {
     createPeer(id, true);
@@ -203,12 +250,15 @@ function createPeer(id, initiator) {
   return peer;
 }
 
-// =====================
-// MIC TOGGLE
-// =====================
+// mic toggle
 function toggleMic() {
   if (!localStream) return;
 
   const track = localStream.getAudioTracks()[0];
   track.enabled = !track.enabled;
 }
+
+// mic otomatik başlat (room girince)
+socket.on("connect", () => {
+  console.log("connected");
+});
