@@ -8,7 +8,6 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
-// ROOM MEMORY (basit kontrol)
 const rooms = {};
 
 function generateRoomId() {
@@ -17,19 +16,22 @@ function generateRoomId() {
 
 io.on("connection", (socket) => {
 
-  // 🏠 CREATE ROOM
+  // 🏠 ROOM CREATE
   socket.on("create-room", () => {
     const roomId = generateRoomId();
-
     rooms[roomId] = true;
 
     socket.join(roomId);
     socket.roomId = roomId;
 
-    socket.emit("room-created", roomId);
+    // 🔥 INVITE LINK GÖNDER
+    socket.emit("room-created", {
+      roomId,
+      link: `/room/${roomId}`
+    });
   });
 
-  // 🔑 JOIN ROOM
+  // 🔑 ROOM JOIN
   socket.on("join-room", (roomId) => {
     if (!rooms[roomId]) {
       socket.emit("room-error", "Oda yok");
