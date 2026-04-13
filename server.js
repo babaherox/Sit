@@ -8,13 +8,38 @@ const io = new Server(server);
 
 app.use(express.static("public"));
 
-io.on("connection", (socket) => {
-  console.log("User:", socket.id);
+// ROOM MEMORY (basit kontrol)
+const rooms = {};
 
-  socket.on("join-room", (roomId) => {
+function generateRoomId() {
+  return Math.random().toString(36).substring(2, 8);
+}
+
+io.on("connection", (socket) => {
+
+  // 🏠 CREATE ROOM
+  socket.on("create-room", () => {
+    const roomId = generateRoomId();
+
+    rooms[roomId] = true;
+
     socket.join(roomId);
     socket.roomId = roomId;
 
+    socket.emit("room-created", roomId);
+  });
+
+  // 🔑 JOIN ROOM
+  socket.on("join-room", (roomId) => {
+    if (!rooms[roomId]) {
+      socket.emit("room-error", "Oda yok");
+      return;
+    }
+
+    socket.join(roomId);
+    socket.roomId = roomId;
+
+    socket.emit("room-joined", roomId);
     socket.to(roomId).emit("user-joined", socket.id);
   });
 
@@ -23,7 +48,7 @@ io.on("connection", (socket) => {
     socket.to(data.roomId).emit("video-event", data);
   });
 
-  // WEBRTC SIGNALING
+  // WEBRTC
   socket.on("offer", (data) => {
     io.to(data.to).emit("offer", {
       from: socket.id,
@@ -44,7 +69,8 @@ io.on("connection", (socket) => {
       candidate: data.candidate
     });
   });
+
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log("Running on " + PORT));
+server.listen(PORT, () => console.log("Running"));
