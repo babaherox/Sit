@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
+  <meta charset="UTF-8">
   <title>Watch Party Pro</title>
   <link rel="stylesheet" href="style.css">
 </head>
@@ -9,13 +10,26 @@
 
 <h2>🎬 Watch Party + Voice Chat</h2>
 
-<input id="roomInput" placeholder="Room ID">
-<button onclick="joinRoom()">Join</button>
+<!-- ================= ROOM ================= -->
+
+<button onclick="createRoom()">🏠 Oda Oluştur</button>
 
 <br><br>
 
+<input id="roomInput" placeholder="Oda kodu gir">
+<button onclick="joinRoom()">🔑 Katıl</button>
+
+<h3 id="roomDisplay">Oda yok</h3>
+
+<a id="inviteLink" target="_blank"></a>
+
+<hr>
+
+<!-- ================= VIDEO ================= -->
+
 <input id="ytInput" placeholder="YouTube link">
-<button onclick="loadVideo()">Load</button>
+
+<button onclick="loadVideo()">🎥 Load</button>
 
 <br><br>
 
@@ -25,16 +39,29 @@
 
 <br>
 
+<!-- CONTROLS -->
+
 <button onclick="playVideo()">▶ Play</button>
 <button onclick="pauseVideo()">⏸ Pause</button>
 <button onclick="toggleFullscreen()">⛶ Fullscreen</button>
 
 <br><br>
 
-<button onclick="toggleMic()">🎤 Mic</button>
+<!-- VOICE -->
 
+<button onclick="toggleMic()">🎤 Mic Aç/Kapat</button>
+
+<p style="opacity:0.6;">
+Invite linki gönder → arkadaş direkt odaya girer
+</p>
+
+<!-- SOCKET -->
 <script src="/socket.io/socket.io.js"></script>
+
+<!-- APP -->
 <script src="app.js"></script>
+
+<!-- YOUTUBE API -->
 <script src="https://www.youtube.com/iframe_api"></script>
 
 </body>
